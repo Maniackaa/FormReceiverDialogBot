@@ -1,0 +1,15 @@
+[Unit]
+Description=formbot
+After=network.target
+
+[Service]
+EnvironmentFile=
+ExecStart=/root/FormReceiverDialogBot/venv/bin/python3 main.py
+ExecReload=/root/FormReceiverDialogBot/venv/bin/python3 main.py
+WorkingDirectory=/root/FormReceiverDialogBot
+KillMode=process
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
