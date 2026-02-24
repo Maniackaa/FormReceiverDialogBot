@@ -4,6 +4,9 @@ from aiogram.fsm.state import StatesGroup, State
 class StartSG(StatesGroup):
     start = State()
     convert = State()
+    how_deal = State()
+    how_atm = State()
+    about = State()
     contacts = State()
     date_select = State()
     fio = State()
@@ -14,6 +17,7 @@ class StartSG(StatesGroup):
 
 class AddCarSG(StatesGroup):
     start = State()
+    city = State()
     convert = State()
     price = State()
     bank = State()

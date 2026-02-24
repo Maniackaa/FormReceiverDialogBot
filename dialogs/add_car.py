@@ -59,6 +59,7 @@ async def car_getter(dialog_manager: DialogManager, event_from_user: User, bot: 
     data['getter'] = result
     data['convertation'] = convertation
     data['minimum_post'] = minimum_post
+    result['city_items'] = tuple(CITY_ITEMS)
 
     logger.debug(data)
 
@@ -66,6 +67,7 @@ async def car_getter(dialog_manager: DialogManager, event_from_user: User, bot: 
     dong = f"{data.get('value', 0):,}".replace(',', ' ')
     result_text = (
         f"💸 ЗАЯВКА 💸 № {count}\n"
+        f"📍 {data.get('city_str', '')}\n"
         f"{data.get('currency_str')}\n"
         f"______________________________\n\n"
         
@@ -95,6 +97,24 @@ def int_check(text: str) -> str:
     if all(ch.isdigit() for ch in text) and 0 <= int(text) <= 120:
         return text
     raise ValueError
+
+
+CITY_ITEMS = [
+    (1, 'Нячанг'),
+    (2, 'Дананг'),
+    (3, 'Фукуок'),
+    (4, 'Снятие денег в банкомате, в любом городе Вьетнама'),
+]
+
+
+async def city_select(callback: CallbackQuery, widget: Select,
+                      dialog_manager: DialogManager, item_id: str):
+    data = dialog_manager.dialog_data
+    idx = int(item_id)
+    data['city_id'] = item_id
+    data['city_str'] = next((c[1] for c in CITY_ITEMS if c[0] == idx), '')
+    await dialog_manager.next()
+    logger.debug(f'data: {data}')
 
 
 async def item_select(callback: CallbackQuery, widget: Select,
@@ -165,6 +185,20 @@ async def confirm(callback: CallbackQuery, button: Button, dialog_manager: Dialo
     await dialog_manager.start(state=StartSG.start, mode=StartMode.RESET_STACK)
 
 add_car_dialog = Dialog(
+    Window(
+        Format(text="""Выберите город:"""),
+        Group(
+            Select(Format('{item[1]}'),
+                   id='city',
+                   on_click=city_select,
+                   items='city_items',
+                   item_id_getter=lambda x: x[0]),
+            width=1
+        ),
+        Start(Const('Сначала'), state=StartSG.start, id='start_menu'),
+        state=AddCarSG.city,
+        getter=car_getter,
+    ),
     Window(
         Format(text="""Выберете направления обмена:"""),
         Group(

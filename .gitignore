@@ -25,6 +25,7 @@ __pycache__/
 # App state / runtime data
 conv.ini
 count.ini
+media_ids.json
 
 # Database
 base.sqlite
