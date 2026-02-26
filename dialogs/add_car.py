@@ -65,6 +65,8 @@ async def car_getter(dialog_manager: DialogManager, event_from_user: User, bot: 
 
     price_str = f"{int(data.get('price', 0)):,}".replace(',', ' ')
     dong = f"{data.get('value', 0):,}".replace(',', ' ')
+    currency_id = int(data.get('currency_id', 0))
+    amount_currency = currency[currency_id]  # ₽, new $, old $, USDT
     result_text = (
         f"💸 ЗАЯВКА 💸 № {count}\n"
         f"📍 {data.get('city_str', '')}\n"
@@ -75,7 +77,7 @@ async def car_getter(dialog_manager: DialogManager, event_from_user: User, bot: 
         f"🤖  @{event_from_user.username}\n"
         f"🪙  {data.get('banks_str') or data.get('net') or data.get('net_str') or data.get('bank') or ''}\n"
         f"💸  {data.get('sbp_str') or ''}\n\n"
-        f"сумма:  {price_str}\n\n"
+        f"сумма:  {price_str} {amount_currency}\n\n"
         f"📍 {data.get('location')}\n\n"
         f"ℹ️   {data.get('info')}\n\n"
         f"отдаем ₫: {dong}"
