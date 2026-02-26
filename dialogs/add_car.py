@@ -156,6 +156,7 @@ async def text_input(message: Message, widget: ManagedTextInput, dialog_manager:
         if price < limit:
             await message.answer(f'Бесплатная доставка осуществляется при обмене от {limit} {data["currency"][currency_id]}. Вычитается стоимость доставки – 70 000 ₫')
             total_value -= 70000
+        total_value += 10000  # бонус 10 000 ₫
         data['value'] = total_value
         await message.answer(f"Сумма к получению: {total_value:,} ₫".replace(',', ' '))
         if currency_id == 0:
@@ -295,6 +296,7 @@ add_car_dialog = Dialog(
             id='info',
             on_success=text_input,
         ),
+        Next(Const('Далее'), id='skip_info'),
         Start(Const('Сначала'), state=StartSG.start, id='start_menu'),
         state=AddCarSG.info,
     ),
