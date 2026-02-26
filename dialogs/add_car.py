@@ -78,8 +78,8 @@ async def car_getter(dialog_manager: DialogManager, event_from_user: User, bot: 
         f"🪙  {data.get('banks_str') or data.get('net') or data.get('net_str') or data.get('bank') or ''}\n"
         f"💸  {data.get('sbp_str') or ''}\n\n"
         f"сумма:  {price_str} {amount_currency}\n\n"
-        f"📍 {data.get('location')}\n\n"
-        f"ℹ️   {data.get('info')}\n\n"
+        f"📍 {data.get('location') or ''}\n\n"
+        f"ℹ️   {data.get('info') or ''}\n\n"
         f"отдаем ₫: {dong}"
 
     )
