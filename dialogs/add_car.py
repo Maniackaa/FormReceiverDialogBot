@@ -183,7 +183,7 @@ async def confirm(callback: CallbackQuery, button: Button, dialog_manager: Dialo
     if not callback.from_user.username:
         await callback.bot.send_message(
             chat_id=callback.from_user.id,
-            text=f'Внимание - ваш профиль закрыт. Мы не сможем с вами связаться, поэтому напишите @K_gretzkiy')
+            text=f'Внимание - ваш профиль закрыт. Мы не сможем с вами связаться, поэтому напишите @operator_krexpex')
     await callback.message.copy_to(chat_id=settings.ADMIN_IDS[0])
     await dialog_manager.start(state=StartSG.start, mode=StartMode.RESET_STACK)
 
