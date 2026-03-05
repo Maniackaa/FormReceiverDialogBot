@@ -35,7 +35,7 @@ async def car_getter(dialog_manager: DialogManager, event_from_user: User, bot: 
     with open(BASE_DIR / 'count.ini') as file:
         count = int(file.read())
     currency = ['₽', 'new $', 'old $', 'USDT']
-    minimum_post = [20000, 200, 200, 200]
+    minimum_post = [20000, 250, 250, 250]
 
     banks = ['Т банк', 'Сбер', 'Альфа', 'Райффайзен', 'ВТБ']
     net = ['TON', 'TRC20', 'BEP20', 'BYBIT UID']
@@ -156,8 +156,8 @@ async def text_input(message: Message, widget: ManagedTextInput, dialog_manager:
         limit = int(data['minimum_post'][currency_id])
         total_value = int(koef * price)
         if price < limit:
-            await message.answer(f'Бесплатная доставка осуществляется при обмене от {limit} {data["currency"][currency_id]}. Вычитается стоимость доставки – 70 000 ₫')
-            total_value -= 70000
+            await message.answer(f'Бесплатная доставка осуществляется при обмене от {limit} {data["currency"][currency_id]}. Вычитается стоимость доставки – 100 000 ₫')
+            total_value -= 100000
         total_value += 10000  # бонус 10 000 ₫
         data['value'] = total_value
         await message.answer(f"Сумма к получению: {total_value:,} ₫".replace(',', ' '))
