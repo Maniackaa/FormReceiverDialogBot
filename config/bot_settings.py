@@ -1,6 +1,7 @@
 import logging
 from functools import lru_cache
 from pathlib import Path
+from typing import Optional
 
 import pytz as pytz
 import structlog
@@ -18,6 +19,8 @@ class Settings(BaseSettings):
     USE_REDIS: bool = False
     LOG_TO_FILE: bool = False
     CHANNEL: int
+    # HTTP(S) прокси для запросов к Telegram API, например http://user:pass@host:port
+    TELEGRAM_PROXY_URL: Optional[str] = None
 
     model_config = SettingsConfigDict(env_file=BASE_DIR / ".env")
 
@@ -32,6 +35,15 @@ def get_settings():
 
 
 settings = get_settings()
+
+
+def telegram_http_session():
+    """Сессия aiohttp с прокси для aiogram, если задан TELEGRAM_PROXY_URL."""
+    if not settings.TELEGRAM_PROXY_URL:
+        return None
+    from aiogram.client.session.aiohttp import AiohttpSession
+
+    return AiohttpSession(proxy=settings.TELEGRAM_PROXY_URL)
 
 
 LOG_TO_FILE = settings.LOG_TO_FILE

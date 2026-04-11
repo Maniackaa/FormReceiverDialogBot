@@ -13,7 +13,7 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.exceptions import TelegramForbiddenError
 
-from config.bot_settings import logger, settings
+from config.bot_settings import logger, settings, telegram_http_session
 from database.db import ObjModel
 from keyboards.keyboards import custom_kb
 
@@ -46,7 +46,14 @@ async def send_mail(recipient, subject, content):
 
 
 async def send_tg_message(ids_to_send: list[str], text: str):
-    bot = Bot(token=settings.BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
+    bot_kwargs = dict(
+        token=settings.BOT_TOKEN,
+        default=DefaultBotProperties(parse_mode=ParseMode.HTML),
+    )
+    _session = telegram_http_session()
+    if _session is not None:
+        bot_kwargs["session"] = _session
+    bot = Bot(**bot_kwargs)
     for tg_id in ids_to_send:
         try:
             await bot.send_message(tg_id, text)

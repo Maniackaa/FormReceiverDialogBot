@@ -12,7 +12,7 @@ from aiogram.fsm.storage.redis import DefaultKeyBuilder, RedisStorage
 from aiogram.types import BotCommand, BotCommandScopeDefault, BotCommandScopeChat
 from aiogram_dialog import setup_dialogs
 
-from config.bot_settings import logger, settings, BASE_DIR
+from config.bot_settings import logger, settings, BASE_DIR, telegram_http_session
 from handlers import user_handlers, action_handlers, admin_handlers
 from services.db_func import get_objs_to_send
 from services.email_func import send_obj
@@ -89,7 +89,14 @@ async def main():
     else:
         storage = MemoryStorage()
 
-    bot = Bot(token=settings.BOT_TOKEN,  default=DefaultBotProperties(parse_mode=ParseMode.HTML))
+    bot_kwargs = dict(
+        token=settings.BOT_TOKEN,
+        default=DefaultBotProperties(parse_mode=ParseMode.HTML),
+    )
+    _session = telegram_http_session()
+    if _session is not None:
+        bot_kwargs["session"] = _session
+    bot = Bot(**bot_kwargs)
     dp = Dispatcher(storage=storage, events_isolation=SimpleEventIsolation())
 
     try:
