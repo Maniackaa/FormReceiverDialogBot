@@ -7,7 +7,7 @@ from pprint import pprint
 from aiogram import Router, Bot, F
 from aiogram.enums import ContentType
 from aiogram.filters import BaseFilter
-from aiogram.types import User, CallbackQuery, Message, Update, InputMediaPhoto
+from aiogram.types import User, CallbackQuery, Message, InputMediaPhoto
 from aiogram.utils.media_group import MediaGroupBuilder
 from aiogram_dialog import Dialog, Window, DialogManager, StartMode, ShowMode
 from aiogram_dialog.api.entities import MediaAttachment, MediaId
@@ -27,7 +27,7 @@ from services.db_func import create_obj, get_or_create_user
 from services.email_func import send_obj_to_admin
 
 
-async def car_getter(dialog_manager: DialogManager, event_from_user: User, bot: Bot, event_update: Update, **kwargs):
+async def car_getter(dialog_manager: DialogManager, event_from_user: User, bot: Bot, **kwargs):
     data = dialog_manager.dialog_data
     with open(BASE_DIR / 'conv.ini', 'r') as file:
         convertation = json.loads(file.read())

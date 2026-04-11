@@ -2,7 +2,7 @@ import json
 
 from aiogram import Router, Bot
 from aiogram.enums import ContentType
-from aiogram.types import User, CallbackQuery, Update
+from aiogram.types import User, CallbackQuery
 from aiogram_dialog import Dialog, Window, DialogManager
 from aiogram_dialog.api.entities import MediaAttachment, MediaId
 from aiogram_dialog.widgets.input import TextInput
@@ -64,7 +64,7 @@ ABOUT_TEXT = (
     "Спасибо, что выбираете нас. Сегодня мы — крупнейший сервис обмена валют во Вьетнаме, и это всё благодаря вашему доверию! 🫰"
 )
 
-async def start_getter(dialog_manager: DialogManager, event_from_user: User, bot: Bot, event_update: Update, **kwargs):
+async def start_getter(dialog_manager: DialogManager, event_from_user: User, bot: Bot, **kwargs):
     data = dialog_manager.dialog_data
     logger.debug("start_getter", dialog_data=data, start_data=dialog_manager.start_data)
 
