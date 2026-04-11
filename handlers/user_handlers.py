@@ -1,10 +1,11 @@
 from aiogram import Router, Bot, F, types
 from aiogram.exceptions import TelegramBadRequest
-from aiogram.filters import CommandStart, CommandObject, BaseFilter
+from aiogram.filters import CommandStart, CommandObject, BaseFilter, ExceptionTypeFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, ErrorEvent, ReplyKeyboardRemove, CallbackQuery
 from aiogram.utils.payload import decode_payload
 from aiogram_dialog import DialogManager, StartMode, ShowMode
+from aiogram_dialog.api.exceptions import UnknownIntent
 
 from config.bot_settings import logger, settings
 from dialogs.add_car import add_car_dialog
@@ -28,13 +29,12 @@ router.message.filter(IsPrivate())
 router.callback_query.filter(IsPrivate())
 
 
-@router.errors()
-async def on_unknown_intent(event, dialog_manager: DialogManager, error: Exception):
-    if isinstance(error, UnknownIntent):
-        # Стек утерян/рассинхронизирован — начнём заново
-        await dialog_manager.reset_stack()
-        await dialog_manager.start(StartSG.start, mode=StartMode.RESET_STACK, show_mode=ShowMode.DELETE_AND_SEND)
-        return True  # ошибка обработана
+@router.errors(ExceptionTypeFilter(UnknownIntent))
+async def on_unknown_intent(event: ErrorEvent, dialog_manager: DialogManager):
+    # Стек утерян/рассинхронизирован — начнём заново (исключение: event.exception)
+    await dialog_manager.reset_stack()
+    await dialog_manager.start(StartSG.start, mode=StartMode.RESET_STACK, show_mode=ShowMode.DELETE_AND_SEND)
+    return True
 
 
 @router.message(CommandStart())
