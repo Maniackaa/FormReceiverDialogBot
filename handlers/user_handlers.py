@@ -31,7 +31,8 @@ router.callback_query.filter(IsPrivate())
 
 @router.errors(ExceptionTypeFilter(UnknownIntent))
 async def on_unknown_intent(event: ErrorEvent, dialog_manager: DialogManager):
-    # Стек утерян/рассинхронизирован — начнём заново (исключение: event.exception)
+    # Стек утерян/рассинхронизирован — начнём заново (исключение: event.exception).
+    # Отслеживание незавершённой заявки не сбрасываем — пользователь не нажимал «Подтвердить».
     await dialog_manager.reset_stack()
     await dialog_manager.start(StartSG.start, mode=StartMode.RESET_STACK, show_mode=ShowMode.DELETE_AND_SEND)
     return True

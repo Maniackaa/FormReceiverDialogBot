@@ -14,7 +14,7 @@ from aiogram_dialog.api.entities import MediaAttachment, MediaId
 from aiogram_dialog.widgets.common import ManagedScroll
 from aiogram_dialog.widgets.input import MessageInput, TextInput, ManagedTextInput
 from aiogram_dialog.widgets.kbd import Button, Select, Url, Column, Back, Next, StubScroll, Group, NumberedPager, \
-    SwitchTo, Start
+    SwitchTo
 from aiogram_dialog.widgets.media import DynamicMedia, StaticMedia
 from aiogram_dialog.widgets.text import Format, Const
 
@@ -22,9 +22,8 @@ from config.bot_settings import settings, logger, BASE_DIR
 from dialogs.buttons import go_start
 
 from dialogs.states import StartSG, AddCarSG
-from dialogs.type_factorys import positive_int_check, tel_check
-from services.db_func import create_obj, get_or_create_user
-from services.email_func import send_obj_to_admin
+from dialogs.type_factorys import positive_int_check
+from services.abandoned_form import cancel_abandon_form_tracking, refresh_abandon_form_snapshot
 
 
 async def car_getter(dialog_manager: DialogManager, event_from_user: User, bot: Bot, **kwargs):
@@ -88,6 +87,8 @@ async def car_getter(dialog_manager: DialogManager, event_from_user: User, bot: 
     data['count'] = count
     result['currency_str'] = data.get('currency_str', '')
     data['currency'] = currency
+
+    refresh_abandon_form_snapshot(event_from_user.id, dialog_manager.dialog_data)
     return result
 
 
@@ -173,11 +174,11 @@ async def text_input(message: Message, widget: ManagedTextInput, dialog_manager:
 
 
 async def confirm(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
+    cancel_abandon_form_tracking(callback.from_user.id)
     data = dialog_manager.dialog_data
     with open(BASE_DIR / 'count.ini', 'w') as file:
         file.write(str(data['count']+1))
 
-    data = dialog_manager.dialog_data
     await callback.message.answer(text=f'Ваша заявка отправлена')
     await callback.bot.send_message(chat_id=settings.CHANNEL, text=f'{data["result_text"]}')
     if not callback.from_user.username:
@@ -198,7 +199,7 @@ add_car_dialog = Dialog(
                    item_id_getter=lambda x: x[0]),
             width=1
         ),
-        Start(Const('Сначала'), state=StartSG.start, id='start_menu'),
+        Button(Const('Сначала'), on_click=go_start, id='start_menu'),
         state=AddCarSG.city,
         getter=car_getter,
     ),
@@ -213,7 +214,7 @@ add_car_dialog = Dialog(
             width=1
         ),
 
-        Start(Const('Сначала'), state=StartSG.start, id='start_menu'),
+        Button(Const('Сначала'), on_click=go_start, id='start_menu'),
         state=AddCarSG.convert,
         getter=car_getter,
     ),
@@ -224,7 +225,7 @@ add_car_dialog = Dialog(
             type_factory=positive_int_check,
             on_success=text_input,
         ),
-        Start(Const('Сначала'), state=StartSG.start, id='start_menu'),
+        Button(Const('Сначала'), on_click=go_start, id='start_menu'),
         state=AddCarSG.price,
         getter=car_getter,
     ),
@@ -242,7 +243,7 @@ add_car_dialog = Dialog(
             id='bank',
             on_success=text_input,
         ),
-        Start(Const('Сначала'), state=StartSG.start, id='start_menu'),
+        Button(Const('Сначала'), on_click=go_start, id='start_menu'),
         state=AddCarSG.bank,
         getter=car_getter
     ),
@@ -256,7 +257,7 @@ add_car_dialog = Dialog(
                    item_id_getter=lambda x: x[0]),
             width=1
         ),
-        Start(Const('Сначала'), state=StartSG.start, id='start_menu'),
+        Button(Const('Сначала'), on_click=go_start, id='start_menu'),
         state=AddCarSG.sbp,
         getter=car_getter
     ),
@@ -274,7 +275,7 @@ add_car_dialog = Dialog(
             id='net',
             on_success=text_input,
         ),
-        Start(Const('Сначала'), state=StartSG.start, id='start_menu'),
+        Button(Const('Сначала'), on_click=go_start, id='start_menu'),
         state=AddCarSG.net,
         getter=car_getter,
     ),
@@ -289,7 +290,7 @@ add_car_dialog = Dialog(
             id='location',
             on_success=text_input,
         ),
-        Start(Const('Сначала'), state=StartSG.start, id='start_menu'),
+        Button(Const('Сначала'), on_click=go_start, id='start_menu'),
         state=AddCarSG.location,
     ),
     Window(
@@ -299,7 +300,7 @@ add_car_dialog = Dialog(
             on_success=text_input,
         ),
         Next(Const('Далее'), id='skip_info'),
-        Start(Const('Сначала'), state=StartSG.start, id='start_menu'),
+        Button(Const('Сначала'), on_click=go_start, id='start_menu'),
         state=AddCarSG.info,
     ),
 

@@ -15,6 +15,7 @@ from config.media_ids import get_welcome_animation_file_id
 
 from dialogs.states import StartSG, AddCarSG
 from dialogs.type_factorys import conv_check
+from services.abandoned_form import arm_abandon_form_tracking
 
 router = Router()
 
@@ -123,6 +124,7 @@ async def main_menu_select(
     if item_id == 1:
         data.update(channel_id=item_id)
         await dialog_manager.start(AddCarSG.city, data=data)
+        arm_abandon_form_tracking(bot=callback.bot, user=callback.from_user)
     elif item_id == 2:
         await dialog_manager.switch_to(StartSG.how_deal)
     elif item_id == 3:
