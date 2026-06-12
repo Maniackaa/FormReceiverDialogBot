@@ -2,6 +2,7 @@ import logging
 from functools import lru_cache
 from pathlib import Path
 from typing import Optional
+from urllib.parse import quote
 
 import pytz as pytz
 import structlog
@@ -19,14 +20,32 @@ class Settings(BaseSettings):
     USE_REDIS: bool = False
     LOG_TO_FILE: bool = False
     CHANNEL: int
-    # HTTP(S) прокси для запросов к Telegram API, например http://user:pass@host:port
-    TELEGRAM_PROXY_URL: Optional[str] = None
+    # Прокси для Telegram API: host:port:login:password
+    TELEGRAM_PROXY: Optional[str] = None
 
     model_config = SettingsConfigDict(env_file=BASE_DIR / ".env")
 
     @property
     def tz(self):
         return pytz.timezone(self.TIMEZONE)
+
+    @property
+    def telegram_proxy_url(self) -> Optional[str]:
+        if not self.TELEGRAM_PROXY:
+            return None
+        value = self.TELEGRAM_PROXY.strip()
+        if "://" in value or "@" in value:
+            return value
+        parts = value.split(":", 3)
+        if len(parts) != 4:
+            raise ValueError(
+                "TELEGRAM_PROXY должен быть в формате host:port:login:password"
+            )
+        host, port, username, password = parts
+        return (
+            f"http://{quote(username, safe='')}:{quote(password, safe='')}"
+            f"@{host}:{port}"
+        )
 
 
 @lru_cache()
@@ -38,12 +57,13 @@ settings = get_settings()
 
 
 def telegram_http_session():
-    """Сессия aiohttp с прокси для aiogram, если задан TELEGRAM_PROXY_URL."""
-    if not settings.TELEGRAM_PROXY_URL:
+    """Сессия aiohttp с прокси для aiogram, если задан TELEGRAM_PROXY."""
+    proxy_url = settings.telegram_proxy_url
+    if not proxy_url:
         return None
     from aiogram.client.session.aiohttp import AiohttpSession
 
-    return AiohttpSession(proxy=settings.TELEGRAM_PROXY_URL)
+    return AiohttpSession(proxy=proxy_url)
 
 
 LOG_TO_FILE = settings.LOG_TO_FILE
