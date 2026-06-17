@@ -1,4 +1,4 @@
-"""Неоконченные заявки: через N секунд после начала отправка уведомления в канал заказов."""
+"""Неоконченные заявки: через N секунд после начала отправка уведомления в ABANDONED_CHANNEL."""
 from __future__ import annotations
 
 import asyncio
@@ -125,13 +125,20 @@ def arm_abandon_form_tracking(bot: Bot, user: User) -> None:
 
             snapshot = dict(_snapshot_by_uid.get(uid) or {})
 
+            if settings.ABANDONED_CHANNEL is None:
+                logger.warning(
+                    "ABANDONED_CHANNEL не задан — уведомление о незавершённой заявке не отправлено",
+                    user_id=uid,
+                )
+                return
+
             msg = format_abandon_message(user, snapshot)
             await bot.send_message(
-                chat_id=settings.CHANNEL,
+                chat_id=settings.ABANDONED_CHANNEL,
                 text=msg,
                 disable_web_page_preview=True,
             )
-            logger.info("Abandoned form notice sent", user_id=uid)
+            logger.info("Abandoned form notice sent", user_id=uid, channel=settings.ABANDONED_CHANNEL)
         except Exception as err:
             logger.error("Не удалось отправить уведомление о незавершённой форме", exc_info=True)
             logger.debug(str(err))

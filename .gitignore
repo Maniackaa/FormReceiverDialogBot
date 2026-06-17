@@ -29,6 +29,7 @@ media_ids.json
 
 # Database
 base.sqlite
+count.ini
 
 # Logs
 logs/

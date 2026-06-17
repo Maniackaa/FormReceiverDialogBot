@@ -110,6 +110,7 @@ async def main():
         await bot.delete_webhook(drop_pending_updates=True)
         try:
             await bot.send_message(chat_id=settings.ADMIN_IDS[0], text='Бот запущен')
+            logger.info(f'Сообщенеи отправлено на {settings.ADMIN_IDS[0]}')
         except Exception as err:
             logger.warning(err)
 

@@ -20,6 +20,8 @@ class Settings(BaseSettings):
     USE_REDIS: bool = False
     LOG_TO_FILE: bool = False
     CHANNEL: int
+    # Канал для уведомлений о незавершённых заявках (отдельно от CHANNEL)
+    ABANDONED_CHANNEL: Optional[int] = None
     # Прокси для Telegram API: host:port:login:password
     TELEGRAM_PROXY: Optional[str] = None
 
