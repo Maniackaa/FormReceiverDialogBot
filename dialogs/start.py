@@ -2,7 +2,8 @@ import json
 
 from aiogram import Router, Bot
 from aiogram.enums import ContentType
-from aiogram.types import User, CallbackQuery
+from aiogram.exceptions import TelegramBadRequest
+from aiogram.types import User, CallbackQuery, InputMediaPhoto, FSInputFile
 from aiogram_dialog import Dialog, Window, DialogManager
 from aiogram_dialog.api.entities import MediaAttachment, MediaId
 from aiogram_dialog.widgets.input import TextInput
@@ -11,13 +12,11 @@ from aiogram_dialog.widgets.media import DynamicMedia
 from aiogram_dialog.widgets.text import Format, Const
 
 from config.bot_settings import settings, logger, BASE_DIR
-from config.media_ids import get_welcome_animation_file_id
+from config.media_ids import get_welcome_animation_file_id, get_atm_photo_file_ids, get_atm_photo_paths
 
 from dialogs.states import StartSG, AddCarSG
 from dialogs.type_factorys import conv_check
 from services.abandoned_form import arm_abandon_form_tracking
-
-router = Router()
 
 # Приветственный текст с шапкой KREX-PEX
 WELCOME_TEXT = (
@@ -47,8 +46,15 @@ HOW_DEAL_TEXT = (
 
 # c. Как получить деньги в банкомате?
 HOW_ATM_TEXT = (
-    "<b>Как получить деньги в банкомате?</b>\n\n"
-    "Раздел в разработке. Скоро здесь появится информация о получении денег в банкомате в любом городе Вьетнама."
+    "<b>ПОЛУЧЕНИЕ НАЛИЧНЫХ В БАНКОМАТЕ BIDV</b>\n\n"
+    "1. При помощи Google Maps найдите ближайший к вам банкомат BIDV\n\n"
+    "2. Нажмите на кнопку Scan QR в правом нижнем углу\n\n"
+    "3. Выберите язык English\n\n"
+    "4. На экране появится QR-код сфотографируйте его его и отправьте оператору\n"
+    "⚠️ не теряйте времени, у вас 1 минута\n\n"
+    "5. Далее появится поле для ввода ПИН-кода: 770099\n\n"
+    "ГОТОВО ✅\n"
+    "ПОЛУЧИТЕ ВАШИ НАЛИЧНЫЕ 🤝"
 )
 
 # d. О нас
@@ -107,9 +113,32 @@ async def start_getter(dialog_manager: DialogManager, event_from_user: User, bot
         "convertation_text": convertation_text,
         "is_admin": is_admin,
         "how_deal_text": HOW_DEAL_TEXT,
-        "how_atm_text": HOW_ATM_TEXT,
         "about_text": ABOUT_TEXT,
     }
+
+
+def _build_atm_media(*, from_files: bool) -> list[InputMediaPhoto]:
+    if from_files:
+        sources = [FSInputFile(path) for path in get_atm_photo_paths()]
+    else:
+        sources = get_atm_photo_file_ids()
+    return [
+        InputMediaPhoto(media=sources[0], caption=HOW_ATM_TEXT),
+        InputMediaPhoto(media=sources[1]),
+        InputMediaPhoto(media=sources[2]),
+    ]
+
+
+async def send_atm_media_group(bot: Bot, chat_id: int) -> None:
+    media = _build_atm_media(from_files=False)
+    try:
+        await bot.send_media_group(chat_id=chat_id, media=media)
+    except TelegramBadRequest as err:
+        if "Wrong file identifier" not in str(err):
+            raise
+        logger.warning("ATM photo file_ids invalid, sending from local files", error=str(err))
+        media = _build_atm_media(from_files=True)
+        await bot.send_media_group(chat_id=chat_id, media=media)
 
 
 async def main_menu_select(
@@ -128,6 +157,7 @@ async def main_menu_select(
     elif item_id == 2:
         await dialog_manager.switch_to(StartSG.how_deal)
     elif item_id == 3:
+        await send_atm_media_group(callback.bot, callback.from_user.id)
         await dialog_manager.switch_to(StartSG.how_atm)
     elif item_id == 4:
         await dialog_manager.switch_to(StartSG.about)
@@ -170,7 +200,7 @@ start_dialog = Dialog(
         getter=start_getter,
     ),
     Window(
-        Format(text="{how_atm_text}"),
+        Const("Инструкция выше 👆"),
         SwitchTo(Const("Назад"), id="back_to_start", state=StartSG.start),
         state=StartSG.how_atm,
         getter=start_getter,
