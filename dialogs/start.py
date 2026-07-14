@@ -12,7 +12,7 @@ from aiogram_dialog.widgets.media import DynamicMedia
 from aiogram_dialog.widgets.text import Format, Const
 
 from config.bot_settings import settings, logger, BASE_DIR
-from config.media_ids import get_welcome_animation_file_id, get_atm_photo_file_ids, get_atm_photo_paths
+from config.media_ids import get_welcome_media, get_atm_photo_file_ids, get_atm_photo_paths
 
 from dialogs.states import StartSG, AddCarSG
 from dialogs.type_factorys import conv_check
@@ -98,11 +98,18 @@ async def start_getter(dialog_manager: DialogManager, event_from_user: User, bot
     )
 
     welcome_media = None
-    anim_id = get_welcome_animation_file_id()
-    if anim_id:
+    media_id, media_type = get_welcome_media()
+    if media_id:
+        type_map = {
+            "animation": ContentType.ANIMATION,
+            "photo": ContentType.PHOTO,
+            "video": ContentType.VIDEO,
+            "document": ContentType.DOCUMENT,
+        }
+        content_type = type_map.get(media_type or "animation", ContentType.ANIMATION)
         welcome_media = MediaAttachment(
-            type=ContentType.ANIMATION,
-            file_id=MediaId(file_id=anim_id),
+            type=content_type,
+            file_id=MediaId(file_id=media_id),
         )
 
     return {

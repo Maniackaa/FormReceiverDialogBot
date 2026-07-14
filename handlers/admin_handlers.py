@@ -12,7 +12,13 @@ from aiogram.types import (CallbackQuery, ChatInviteLink, ChatMemberUpdated,
 from aiogram_dialog import DialogManager
 
 from config.bot_settings import BASE_DIR, settings
-from config.media_ids import save_welcome_animation_file_id
+from config.media_ids import (
+    save_welcome_media,
+    WELCOME_TYPE_ANIMATION,
+    WELCOME_TYPE_DOCUMENT,
+    WELCOME_TYPE_PHOTO,
+    WELCOME_TYPE_VIDEO,
+)
 from keyboards.keyboards import custom_kb
 
 from config.bot_settings import logger
@@ -21,29 +27,45 @@ from services.db_func import get_obj
 router: Router = Router()
 
 
-@router.message((F.animation | F.document | F.photo) & F.from_user.as_("user"))
+@router.message((F.animation | F.document | F.photo | F.video) & F.from_user.as_("user"))
 async def admin_get_file_id(message: Message, user):
-    """Админ скидывает файл — бот возвращает file_id и сохраняет как приветственную анимацию."""
+    """Админ скидывает файл — бот возвращает file_id и сохраняет для стартового экрана."""
     if user.id not in settings.ADMIN_IDS:
         return
     file_id = None
     kind = None
+    media_type = None
     if message.animation:
         file_id = message.animation.file_id
         kind = "анимация (GIF)"
-    elif message.document:
-        file_id = message.document.file_id
-        kind = "документ"
+        media_type = WELCOME_TYPE_ANIMATION
+    elif message.video:
+        file_id = message.video.file_id
+        kind = "видео"
+        media_type = WELCOME_TYPE_VIDEO
     elif message.photo:
         file_id = message.photo[-1].file_id
         kind = "фото"
+        media_type = WELCOME_TYPE_PHOTO
+    elif message.document:
+        file_id = message.document.file_id
+        kind = "документ"
+        mime = (message.document.mime_type or "").lower()
+        if mime.startswith("video/"):
+            media_type = WELCOME_TYPE_VIDEO
+            kind = "видео (документ)"
+        elif mime == "image/gif":
+            media_type = WELCOME_TYPE_ANIMATION
+            kind = "GIF (документ)"
+        else:
+            media_type = WELCOME_TYPE_DOCUMENT
 
-    if file_id:
-        save_welcome_animation_file_id(file_id)
+    if file_id and media_type:
+        save_welcome_media(file_id, media_type)
         await message.reply(
             f"<b>file_id получен</b> ({kind}):\n"
             f"<code>{file_id}</code>\n\n"
-            "Сохранён как приветственная анимация на старте бота."
+            f"Сохранён для стартового экрана (тип: <code>{media_type}</code>)."
         )
 
 

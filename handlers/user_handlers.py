@@ -8,6 +8,7 @@ from aiogram_dialog import DialogManager, StartMode, ShowMode
 from aiogram_dialog.api.exceptions import UnknownIntent
 
 from config.bot_settings import logger, settings
+from config.media_ids import clear_welcome_media, fix_welcome_media_type_from_telegram_error
 from dialogs.add_car import add_car_dialog
 from dialogs.start import start_dialog
 from dialogs.states import StartSG
@@ -27,6 +28,26 @@ router.include_router(start_dialog)
 router.include_router(add_car_dialog)
 router.message.filter(IsPrivate())
 router.callback_query.filter(IsPrivate())
+
+
+@router.errors(ExceptionTypeFilter(TelegramBadRequest))
+async def on_telegram_bad_request(event: ErrorEvent, dialog_manager: DialogManager):
+    err = event.exception
+    msg = str(err)
+    if "can't use file of type" in msg:
+        if fix_welcome_media_type_from_telegram_error(msg):
+            logger.warning("Исправлен тип welcome-медиа после ошибки Telegram", error=msg)
+        else:
+            clear_welcome_media()
+            logger.warning("Удалено некорректное welcome-медиа", error=msg)
+        await dialog_manager.reset_stack()
+        await dialog_manager.start(
+            StartSG.start,
+            mode=StartMode.RESET_STACK,
+            show_mode=ShowMode.DELETE_AND_SEND,
+        )
+        return True
+    return False
 
 
 @router.errors(ExceptionTypeFilter(UnknownIntent))
