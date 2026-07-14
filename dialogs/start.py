@@ -2,17 +2,16 @@ import json
 
 from aiogram import Router, Bot
 from aiogram.enums import ContentType
-from aiogram.exceptions import TelegramBadRequest
-from aiogram.types import User, CallbackQuery, InputMediaPhoto, FSInputFile
+from aiogram.types import User, CallbackQuery
 from aiogram_dialog import Dialog, Window, DialogManager
 from aiogram_dialog.api.entities import MediaAttachment, MediaId
 from aiogram_dialog.widgets.input import TextInput
 from aiogram_dialog.widgets.kbd import Select, Back, Group, SwitchTo
-from aiogram_dialog.widgets.media import DynamicMedia
+from aiogram_dialog.widgets.media import DynamicMedia, StaticMedia
 from aiogram_dialog.widgets.text import Format, Const
 
 from config.bot_settings import settings, logger, BASE_DIR
-from config.media_ids import get_welcome_media, get_atm_photo_file_ids, get_atm_photo_paths
+from config.media_ids import get_welcome_media, get_atm_step_photo_path
 
 from dialogs.states import StartSG, AddCarSG
 from dialogs.type_factorys import conv_check
@@ -44,18 +43,73 @@ HOW_DEAL_TEXT = (
     "4. Приятного отдыха! А мы будем ждать вашего следующего обращения."
 )
 
-# c. Как получить деньги в банкомате?
-HOW_ATM_TEXT = (
-    "<b>ПОЛУЧЕНИЕ НАЛИЧНЫХ В БАНКОМАТЕ BIDV</b>\n\n"
-    "1. При помощи Google Maps найдите ближайший к вам банкомат BIDV\n\n"
-    "2. Нажмите на кнопку Scan QR в правом нижнем углу\n\n"
-    "3. Выберите язык English\n\n"
-    "4. На экране появится QR-код сфотографируйте его его и отправьте оператору\n"
-    "⚠️ не теряйте времени, у вас 1 минута\n\n"
-    "5. Далее появится поле для ввода ПИН-кода: 770099\n\n"
-    "ГОТОВО ✅\n"
-    "ПОЛУЧИТЕ ВАШИ НАЛИЧНЫЕ 🤝"
+# c. Как получить деньги в банкомате — по одному экрану на шаг
+ATM_STEPS = (
+    (
+        "<b>ПОЛУЧЕНИЕ НАЛИЧНЫХ В БАНКОМАТЕ BIDV</b>\n\n"
+        "<b>Шаг 1 из 5</b>\n"
+        "При помощи Google Maps найдите ближайший к вам банкомат BIDV"
+    ),
+    (
+        "<b>Шаг 2 из 5</b>\n"
+        "Нажмите на кнопку Scan QR в правом нижнем углу"
+    ),
+    (
+        "<b>Шаг 3 из 5</b>\n"
+        "На экране банкомата выберите язык <b>English</b>\n\n"
+        "Так интерфейс будет понятнее, и вы сможете без ошибок пройти следующие шаги "
+        "со сканированием QR-кода\n"
+        "\u200b\n\u200b\n\u200b\n"
+    ),
+    (
+        "<b>Шаг 4 из 5</b>\n"
+        "На экране появится QR-код — сфотографируйте его и отправьте оператору\n"
+        "⚠️ не теряйте времени, у вас 1 минута"
+    ),
+    (
+        "<b>Шаг 5 из 5</b>\n"
+        "Далее появится поле для ввода ПИН-кода: <code>770099</code>\n\n"
+        "ГОТОВО ✅\n"
+        "ПОЛУЧИТЕ ВАШИ НАЛИЧНЫЕ 🤝"
+    ),
 )
+
+ATM_STATES = (
+    StartSG.how_atm_1,
+    StartSG.how_atm_2,
+    StartSG.how_atm_3,
+    StartSG.how_atm_4,
+    StartSG.how_atm_5,
+)
+
+
+def _build_atm_windows() -> tuple[Window, ...]:
+    windows: list[Window] = []
+    for index, text in enumerate(ATM_STEPS, start=1):
+        back_state = StartSG.start if index == 1 else ATM_STATES[index - 2]
+        nav_row = [
+            SwitchTo(Const("Назад"), id=f"atm_back_{index}", state=back_state),
+        ]
+        if index < len(ATM_STEPS):
+            nav_row.append(
+                SwitchTo(Const("Далее"), id=f"atm_next_{index}", state=ATM_STATES[index]),
+            )
+        windows.append(
+            Window(
+                StaticMedia(
+                    path=get_atm_step_photo_path(index),
+                    type=ContentType.PHOTO,
+                ),
+                Const(text),
+                Group(*nav_row, width=2),
+                Group(
+                    SwitchTo(Const("В меню"), id=f"atm_menu_{index}", state=StartSG.start),
+                    width=1,
+                ),
+                state=ATM_STATES[index - 1],
+            )
+        )
+    return tuple(windows)
 
 # d. О нас
 ABOUT_TEXT = (
@@ -124,30 +178,6 @@ async def start_getter(dialog_manager: DialogManager, event_from_user: User, bot
     }
 
 
-def _build_atm_media(*, from_files: bool) -> list[InputMediaPhoto]:
-    if from_files:
-        sources = [FSInputFile(path) for path in get_atm_photo_paths()]
-    else:
-        sources = get_atm_photo_file_ids()
-    return [
-        InputMediaPhoto(media=sources[0], caption=HOW_ATM_TEXT),
-        InputMediaPhoto(media=sources[1]),
-        InputMediaPhoto(media=sources[2]),
-    ]
-
-
-async def send_atm_media_group(bot: Bot, chat_id: int) -> None:
-    media = _build_atm_media(from_files=False)
-    try:
-        await bot.send_media_group(chat_id=chat_id, media=media)
-    except TelegramBadRequest as err:
-        if "Wrong file identifier" not in str(err):
-            raise
-        logger.warning("ATM photo file_ids invalid, sending from local files", error=str(err))
-        media = _build_atm_media(from_files=True)
-        await bot.send_media_group(chat_id=chat_id, media=media)
-
-
 async def main_menu_select(
     callback: CallbackQuery,
     widget: Select,
@@ -164,8 +194,7 @@ async def main_menu_select(
     elif item_id == 2:
         await dialog_manager.switch_to(StartSG.how_deal)
     elif item_id == 3:
-        await send_atm_media_group(callback.bot, callback.from_user.id)
-        await dialog_manager.switch_to(StartSG.how_atm)
+        await dialog_manager.switch_to(StartSG.how_atm_1)
     elif item_id == 4:
         await dialog_manager.switch_to(StartSG.about)
     elif item_id == 5:
@@ -206,12 +235,7 @@ start_dialog = Dialog(
         state=StartSG.how_deal,
         getter=start_getter,
     ),
-    Window(
-        Const("Инструкция выше 👆"),
-        SwitchTo(Const("Назад"), id="back_to_start", state=StartSG.start),
-        state=StartSG.how_atm,
-        getter=start_getter,
-    ),
+    *_build_atm_windows(),
     Window(
         Format(text="{about_text}"),
         SwitchTo(Const("Назад"), id="back_to_start", state=StartSG.start),

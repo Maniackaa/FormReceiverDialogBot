@@ -8,17 +8,6 @@ MEDIA_IDS_PATH = BASE_DIR / "media_ids.json"
 KEY_WELCOME_ANIMATION = "welcome_animation"  # legacy
 KEY_WELCOME_MEDIA = "welcome_media"
 
-ATM_PHOTO_FILE_IDS = [
-    "AgACAgIAAxkBAALA_mozwGLNnaIrygwqyD5BpbYb7PBIAAI3GWsbLF6RSbSK-5OKbarqAQADAgADeQADPAQ",
-    "AgACAgIAAxkBAALBAAFqM8CBGa4zMSMZ4HUJdQ_rmiozhQACOBlrGyxekUmk3i2eW6qnlQEAAwIAA3kAAzwE",
-    "AgACAgIAAxkBAALBAmozwI5WwgQQKU6lbUuJ3--A5V5XAAI5GWsbLF6RSWAHB2YGqik2AQADAgADeQADPAQ",
-]
-ATM_PHOTO_PATHS = [
-    BASE_DIR / "media" / "cash1.jpg",
-    BASE_DIR / "media" / "cash2.jpg",
-    BASE_DIR / "media" / "cash3.jpg",
-]
-
 # Типы для welcome_media["type"] — совпадают с ContentType.value в aiogram
 WELCOME_TYPE_ANIMATION = "animation"
 WELCOME_TYPE_PHOTO = "photo"
@@ -61,12 +50,11 @@ def get_welcome_animation_file_id() -> str | None:
     return file_id
 
 
-def get_atm_photo_file_ids() -> list[str]:
-    return ATM_PHOTO_FILE_IDS
-
-
-def get_atm_photo_paths() -> list[Path]:
-    return ATM_PHOTO_PATHS
+def get_atm_step_photo_path(step: int) -> Path:
+    """media/media1.jpg … media5.jpg — по одному изображению на шаг инструкции банкомата."""
+    if step < 1 or step > 5:
+        raise ValueError(f"ATM step must be 1..5, got {step}")
+    return BASE_DIR / "media" / f"media{step}.jpg"
 
 
 def save_welcome_media(file_id: str, media_type: str) -> None:
